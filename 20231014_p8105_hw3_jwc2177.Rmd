@@ -1,0 +1,9 @@
+---
+title: "P8105 Homework 3"
+author: "Jake W. Coldiron - jwc2177"
+date: "14 October 2023"
+output: github_document
+---
+
+This is a test of to ensure everything is working with GitHub.
+
