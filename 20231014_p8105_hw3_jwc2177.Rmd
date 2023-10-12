@@ -21,8 +21,26 @@ This problem uses the Instacart data. DO NOT include this dataset in your local 
 >library(p8105.datasets)
 >data("instacart")
 
-```{r instacart data importation}
+These files are hosted on Dr. Goldsmith's github so we need to download p8105.datasets from there. We can do so with the following code with a few of the following options
 
+```{r downloading datatsets directly from github, eval = FALSE}
+#downloading datatsets directly from github, unevaluated
+
+
+install.packages("devtools")
+devtools::install_github("p8105/p8105.datasets")
+
+library(p8105.datasets)
+
+data(nyc_airbnb)
+data(rest_inspec)
+```
+
+
+
+```{r instacart data importation}
+library(p8105.datasets)
+data("instacart")
 ```
 
 
