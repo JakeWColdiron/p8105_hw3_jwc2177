@@ -613,7 +613,6 @@ nhanes_covar_df = read_csv("./20231014_p8105_hw3_jwc2177_data/nhanes_covar.csv")
 nhanes_covar_df
 ```
 
-
 ## ii. Data Tidying
 
 Load, tidy, merge, and otherwise organize the data sets. Your final dataset should include all originally observed variables; exclude participants less than 21 years of age, and those with missing demographic data; and encode data with reasonable variable classes (i.e. not numeric, and using factors with the ordering of tables and plots in mind).
@@ -665,7 +664,8 @@ nhanes_covar_tidyd_df =
 nhanes_covar_tidyd_df
 ```
 
-```{r}
+```{r left joining the data frames}
+#left joining the data frames
 #view(accel_into_covar_df)
 
 accel_into_covar_df = left_join(nhanes_covar_tidyd_df, nhanes_accel_tidyd_df) 
@@ -673,15 +673,15 @@ accel_into_covar_df = left_join(nhanes_covar_tidyd_df, nhanes_accel_tidyd_df)
 accel_into_covar_df
 ```
 
-
 ## iii. Human-Friendly Table
 
 Produce a reader-friendly table for the number of men and women in each education category, and create a visualization of the age distributions for men and women in each education category. Comment on these items.
 
-```{r}
-#view(accel_into_covar_df)
+```{r human friendly table of age distro}
+#human friendly table of sex distro
+#view(accel_into_covar_df_sex_distro)
 
-accel_into_covar_df_age_distro = 
+accel_into_covar_df_sex_distro = 
 
 accel_into_covar_df %>% 
   
@@ -689,15 +689,16 @@ accel_into_covar_df %>%
   
   summarize(count = n())
 
-accel_into_covar_df_age_distro
+accel_into_covar_df_sex_distro
 ```
 
-```{r}
-#view(accel_into_covar_df)
+```{r sex plot}
+#sex plot
+#view(accel_into_covar_df_sex_distro_plot)
 
-accel_into_covar_df_age_distro_plot = 
+accel_into_covar_df_sex_distro_plot = 
 
-accel_into_covar_df_age_distro %>% 
+accel_into_covar_df_sex_distro %>% 
   
   mutate(education = fct_relevel(education,"incomplete_highschool", "complete_highschool", "over_highschool")) %>% 
   
@@ -715,7 +716,7 @@ accel_into_covar_df_age_distro %>%
     caption = "I like cats :)"
   )
 
-accel_into_covar_df_age_distro_plot
+accel_into_covar_df_sex_distro_plot
 ```
 
 > Based on the table and the graph, we can see that the the lower the education level the lesser particiaption from both the sexes. However, while women have an overall but in-parity advantage in the incomplelte highschool and over highschool groupp, the disparity is quite stark in the highschool group. This could suggest that normative stations is that women who complete highschool generally more overlooked than men, whereas the inverse is true for the extremes.
