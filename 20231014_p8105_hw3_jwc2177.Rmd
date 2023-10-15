@@ -5,30 +5,55 @@ date: "14 October 2023"
 output: github_document
 ---
 
-# I. Problem 1
+> Before we begin, let's specify document particulars.
 
-> Let's load our libraries. 
+```{r setup}
+#r setup
 
-```{r}
 library(tidyverse)
+
+library(ggridges)
+
+library(patchwork)
+
+knitr::opts_chunk$set(
+	echo = TRUE,
+	warning = FALSE,
+	fig.width = 8, 
+  fig.height = 6,
+  out.width = "90%"
+)
+
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+
+scale_colour_discrete = scale_colour_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
 ```
 
+# I. Problem 1
 
 ## i. Data Importation
 
 This problem uses the Instacart data. DO NOT include this dataset in your local data directory; instead, load the data from the p8105.datasets using:
 
 >library(p8105.datasets)
+
 >data("instacart")
 
-These files are hosted on Dr. Goldsmith's github so we need to download p8105.datasets from there. We can do so with the following code with a few of the following options
+> These files are hosted on Dr. Goldsmith's github so we need to download p8105.datasets from there. We can do so with the following code with a few of the following options
 
 ```{r downloading datatsets directly from github, eval = FALSE}
 #downloading datatsets directly from github, unevaluated
 
-
 install.packages("devtools")
 devtools::install_github("p8105/p8105.datasets")
+
+#examples 
 
 library(p8105.datasets)
 
@@ -36,11 +61,25 @@ data(nyc_airbnb)
 data(rest_inspec)
 ```
 
-
+> Let's presume that we've used install_github() function from the devtools package in order to install the p8105.dataets library. Now, let's load this library and start pull out the instacart data. 
 
 ```{r instacart data importation}
+#instacart data importation
+#view(instacart_df)
+
 library(p8105.datasets)
+
 data("instacart")
+
+instacart_df = 
+  instacart %>% 
+  as_tibble()
+
+instacart_df = 
+  instacart_df %>% 
+  janitor::clean_names()
+
+instacart_df
 ```
 
 
@@ -48,17 +87,140 @@ data("instacart")
 
 The goal is to do some exploration of this dataset. To that end, write a short description of the dataset, noting the size and structure of the data, describing some key variables, and giving illstrative examples of observations. Then, do or answer the following (commenting on the results of each):
 
+> This dataset contains `r nrow(instacart)` rows and `r ncol(instacart)` columns, with each row resprenting a single product from an instacart order. Variables include identifiers for user, order, and product; the order in which each product was added to the cart. There are several order-level variables, describing the day and time of the order, and number of days since prior order. Then there are several item-specific variables, describing the product name (e.g. Yogurt, Avocado), department (e.g. dairy and eggs, produce), and aisle (e.g. yogurt, fresh fruits), and whether the item has been ordered by this user in the past. In total, there are `r instacart |> select(product_id) |> distinct() |> count()` products found in `r instacart |> select(user_id, order_id) |> distinct() |> count()` orders from `r instacart |> select(user_id) |> distinct() |> count()` distinct users.
+
+
 ## iii. Aisles
 
 How many aisles are there, and which aisles are the most items ordered from? Make a plot that shows the number of items ordered in each aisle, limiting this to aisles with more than 10000 items ordered. Arrange aisles sensibly, and organize your plot so others can read it.
+
+### a) Asile Count 
+
+```{r aisles data frame}
+#aligned aisles
+#view(aligned_aisles_df)
+
+asiles_df = 
+  
+  instacart_df %>% 
+  
+  count(aisle)
+
+asiles_df
+
+```
+
+> Thus, there are 134 asiles. 
+
+### b) Popular Asiles Data Frame
+
+```{r popular aisles data frame}
+#popular aisles data frame
+#view(popular_asiles_df)
+
+popular_asiles_df = 
+  
+  asiles_df %>% 
+  
+  filter(n > 10000) %>% 
+  
+  arrange(desc(n))
+
+popular_asiles_df
+
+#Verify it worked
+
+tail(popular_asiles_df)
+```
+
+> Thus, there are 39 asiles with more than 10,000 orders. 
+
+### C) Popular Asiles Plot
+
+```{r popular asiles plot}
+#popular asiles plot
+#view(popular_asiles_plot)
+
+popular_asiles_plot = 
+  
+  popular_asiles_df %>% 
+  
+  mutate(aisle = fct_reorder(aisle, n)) %>% 
+  
+  ggplot(aes(x = aisle, y = n, color = aisle)) + 
+  
+  geom_point() + 
+  
+  labs(
+    title = "Number of Items Ordered From Each Instacart Aisle",
+    x = "Asile(s)",
+    y = "Number of Items Ordered",
+    caption = "Instacart data from: https://www.instacart.com/datasets/grocery-shopping-2017"
+    ) + 
+  
+    scale_y_continuous(
+    breaks = c(10000, 20000, 30000, 40000, 50000, 60000, 70000, 80000, 90000, 100000, 110000, 120000, 130000, 140000, 150000, 160000)
+  ) +
+  
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+  
+  theme(legend.position = "none")
+
+popular_asiles_plot
+```  
 
 ## iv. Popular Items
 
 Make a table showing the three most popular items in each of the aisles “baking ingredients”, “dog food care”, and “packaged vegetables fruits”. Include the number of times each item is ordered in your table.
 
+```{r three top popular aisles}
+# three top popular aisles
+# view(three_top_popular_aisles)
+
+three_top_popular_aisles = 
+  
+  instacart_df %>% 
+  
+  filter(aisle %in% c("baking ingredients", "dog food care", "packaged vegetables fruits")) |>
+  
+  group_by(aisle) %>% 
+  
+  count(product_name) %>%  
+  
+  mutate(rank = min_rank(desc(n))) %>%  
+  
+  filter(rank < 4) %>% 
+  
+  arrange(desc(n))
+
+three_top_popular_aisles
+```
+
 ## v. Apples and Ice Cream 
 
 Make a table showing the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered on each day of the week; format this table for human readers (i.e. produce a 2 x 7 table).
+
+```{r time pink lady apples coffee ice cream}
+#time pink lady apples coffee ice cream
+#view(time_pinkladyapples_coffeeicecream)
+
+time_pinkladyapples_coffeeicecream_df = 
+  
+  instacart_df %>% 
+  
+  filter(product_name %in% c("Pink Lady Apples", "Coffee Ice Cream")) %>% 
+  
+  group_by(product_name, order_dow) %>% 
+  
+  summarize(mean_hour = mean(order_hour_of_day)) %>% 
+  
+  pivot_wider(
+    names_from = order_dow, 
+    values_from = mean_hour
+  )
+
+time_pinkladyapples_coffeeicecream_df
+```
 
 
 
@@ -67,6 +229,27 @@ Make a table showing the mean hour of the day at which Pink Lady Apples and Coff
 ## i. Data Importation
 
 This problem uses the BRFSS data. DO NOT include this dataset in your local data directory; instead, load the data from the p8105.datasets package.
+
+> library(p8105.datasets)
+
+> data("brfss_smart2010")
+
+Because we've already loaded the 
+
+```{r brfss data importation}
+#instacart data importation
+#view(brfss_df)
+
+library(p8105.datasets)
+
+data("brfss_smart2010")
+
+brfss_df = 
+  brfss_smart2010 %>% 
+  as_tibble()
+
+brfss_df
+```
 
 ## ii. Data Tidying
 
@@ -77,18 +260,334 @@ First, do some data cleaning:
 1. include only responses from “Excellent” to “Poor”
 1. organize responses as a factor taking levels ordered from “Poor” to “Excellent”
 
+```{r brfss data cleaning}
+#instacart data importation
+#view(brfss_df_tidyd)
+
+brfss_df_tidyd = 
+  
+  brfss_df %>% 
+  
+  janitor::clean_names() %>% 
+  
+  filter(topic == "Overall Health") %>%  
+  
+#The the only possible responses for "response" is Excellent, Very Good, Good, Fair, and Poor. Therefore, no other filtering needs to take place here. 
+
+  arrange(match(response, c("Poor", "Fair", "Good", "Very good", "Excellent")))
+  
+#Verify everything worked.
+
+brfss_df_tidyd
+
+tail(brfss_df_tidyd)
+```
 
 
 ## iii. Key Observations
 
 Using this dataset, do or answer the following (commenting on the results of each):
 
-1. In 2002, which states were observed at 7 or more locations? What about in 2010?
-1. Construct a dataset that is limited to Excellent responses, and contains, year, state, and a variable that averages the data_value across locations within a state. Make a “spaghetti” plot of this average value over time within a state (that is, make a plot showing a line for each state across years – the geom_line geometry and group aesthetic will help).
-1. Make a two-panel plot showing, for the years 2006, and 2010, distribution of data_value for responses (“Poor” to “Excellent”) among locations in NY State.
+### 1. In 2002, which states were observed at 7 or more locations? What about in 2010?
+
+#### a) 2002 
+
+```{r}
+#view(brfss_df_tidyd_2002)
+
+brfss_df_tidyd_2002 =
+  
+  brfss_df_tidyd %>% 
+  
+  filter(year == "2002") %>%  
+  
+  rename(state = locationabbr) %>% 
+  
+  group_by(state) %>% 
+  
+  summarize(count = n()) %>% 
+  
+  filter(count >= 7)
 
 
+brfss_df_tidyd_2002
+```
 
+> Thus, in 2002, 36 states had 7 or more observations.
+
+#### b) 2010
+
+```{r 2010 observations}
+#2010 observations
+#view(brfss_df_tidyd_2010)
+
+brfss_df_tidyd_2010 =
+  
+  brfss_df_tidyd %>% 
+  
+  filter(year == "2010")  %>%  
+  
+  rename(state = locationabbr) %>% 
+  
+  group_by(state) %>% 
+
+  count(state) %>% 
+  
+  filter(n >= 7)
+  
+brfss_df_tidyd_2010
+```
+
+> Thus, in 2010, 45 states had 7 or more observations
+
+### 2. Construct a dataset that is limited to Excellent responses, and contains, year, state, and a variable that averages the data_value across locations within a state. Make a “spaghetti” plot of this average value over time within a state (that is, make a plot showing a line for each state across years – the geom_line geometry and group aesthetic will help).
+
+> First, let's create a spagehetti_df which we will use to bulid the plots. 
+
+```{r spagehetti data frame}
+#spagehetti data frame
+#view(brfss_df_tidyd_spagehetti_df)
+
+brfss_df_tidyd_spagehetti_df = 
+  
+  brfss_df_tidyd %>% 
+  
+  filter(response == "Excellent") %>% 
+  
+  rename(state = locationabbr) %>% 
+  
+  select(year, state, response, data_value) %>% 
+  
+  group_by(year, state, response) %>% 
+  
+  summarize(mean_state_value = mean(data_value, na.rm = TRUE))
+
+#Verify it worked
+
+brfss_df_tidyd_spagehetti_df
+
+tail(brfss_df_tidyd_spagehetti_df )
+```
+
+> Let's look that the graph without "spagehetti" lines first. 
+
+```{r meatball plot}
+#meatball plot
+#view(meatball plot)
+
+brfss_df_tidyd_meatball_plot = 
+  
+  brfss_df_tidyd_spagehetti_df %>% 
+  
+  ggplot(aes(x = year, y = mean_state_value, color = state)) +
+  
+  geom_point(alpha = 0.6) +
+  
+  labs(
+    title = "Cross-Sectional Values of 'Excellent' Overall Health Reponses within the BRFSS Survey from 2002 - 2010 by State",
+    x = "Time, in Years",
+    y = "State Data Value of Excellent Responses, Averaged from All State Locations", 
+    color = "US States plus DC",
+    caption = "BRFSS Data from https://www.cdc.gov/brfss/"
+  ) +
+
+  scale_x_continuous(
+    breaks = c(2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010),
+    labels = c("2002", "2003", "2004", "2005", "2006", "2007", "2008", "2009", "2010")
+  )
+
+
+brfss_df_tidyd_meatball_plot
+
+```
+
+> Based on the given data, we can send that as the years go on, the Excellent values tend to decrease. Further, as expected, most data is concentrated towards the top with a few notable outliers falling well below the group. 
+
+
+> Now let's add some lines to better understand trends, and make more sense from the visual noise. 
+
+```{r spagehetti and meatball plot}
+#spagehetti and meatball plot
+#view(brfss_df_tidyd_spagehetti_meatball_plot)
+
+brfss_df_tidyd_spagehetti_meatball_plot = 
+  
+  brfss_df_tidyd_spagehetti_df %>% 
+  
+  ggplot(aes(x = year, y = mean_state_value, color = state)) +
+  
+  geom_point(alpha = 0.6) +
+  
+  geom_line(alpha = 0.4) +
+  
+  labs(
+    title = "Trends of 'Excellent' Overall Health Reponses within the BRFSS Survey from 2002 - 2010 by State",
+    x = "Time, in Years",
+    y = "State Data Value of Excellent Responses, Averaged from All State Locations", 
+    color = "US States plus DC",
+    caption = "BRFSS Data from https://www.cdc.gov/brfss/"
+  ) +
+
+  scale_x_continuous(
+    breaks = c(2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010),
+    labels = c("2002", "2003", "2004", "2005", "2006", "2007", "2008", "2009", "2010")
+  )
+
+brfss_df_tidyd_spagehetti_meatball_plot
+```
+
+> By adding lines, we can see that the variance between years is rather stark. Instead of one cluster of data contiuning through time, the individual states are all changing but changing in such a way that the group remains the same.
+
+> In essence, we're looking at the central limit theorem in action. There are a few outliers every year, and even though the states (i.e., samples) might be far from the measures of central tendency, the nation (i.e., population) remains relatively constant. 
+
+
+> We can better look at the trend of each state by faceting the plot. It's a bit difficult to read if it's small, but you can still see the general trend for each state. 
+
+```{r spagehetti and meatball state plot}
+#spagehetti and meatball state plot
+#view(brfss_df_tidyd_spagehetti_meatball_state_plot)
+
+brfss_df_tidyd_spagehetti_meatball_state_plot = 
+  
+  brfss_df_tidyd_spagehetti_df %>% 
+  
+  ggplot(aes(x = year, y = mean_state_value, color = state)) +
+  
+  geom_point(alpha = 0.6) +
+  
+  geom_line(alpha = 0.4) +
+  
+  facet_grid(. ~ state) +
+  
+  labs(
+    title = "Trends of 'Excellent' Overall Health Reponses within the BRFSS Survey from 2002 - 2010, Partitioned State",
+    x = "Time, in Years",
+    y = "State Data Value of Excellent Responses, Averaged from All State Locations", 
+    color = "US States plus DC",
+    caption = "BRFSS Data from https://www.cdc.gov/brfss/"
+  )
+
+brfss_df_tidyd_spagehetti_meatball_state_plot
+```
+
+> Breaking this down by state reveals what most public health officals already understand. Wealthier states and territoies like DC generally report a high score with little variance. Conversely, poorer states like West Virgina report poorer health scores.
+
+> Interestlingly, the more agricultral a state is the more it tends to vary. For example, IA, AL, IN, NE all - by inspection - have some the the largest between group and between year movements. Then states that rely on other industries for their agricultre such as VT, DE, and MN generally habe less variaence. 
+
+### 3. Make a two-panel plot showing, for the years 2006, and 2010, distribution of data_value for responses (“Poor” to “Excellent”) among locations in NY State.
+
+#### a) 2006 Dataframe
+```{r ny data distribution 2006 dataframe}
+#ny data distribution 2006 dataframe
+#view(brfss_df_tidyd_data_distribution_2006_df)
+
+brfss_df_tidyd_data_distribution_2006_df = 
+  
+  brfss_df_tidyd %>% 
+  
+  rename(state = locationabbr) %>% 
+  
+  rename(county = locationdesc) %>% 
+  
+  select(year, state, county, response, data_value) %>% 
+  
+  filter(state == "NY") %>% 
+  
+  filter(year == 2006) %>% 
+  
+  mutate(county = recode(county, "NY - Kings County" = "Kings County", "NY - New York County" = "New York County", "NY - Suffolk County" = "Suffolk County", "NY - Nassau County" = "Nassau County", "NY - Queens County" = "Queens County", "NY - Westchester County" = "Weschester County"))
+
+brfss_df_tidyd_data_distribution_2006_df
+```
+
+#### b) 2006 Plot 
+
+```{r ny data distribution 2006 plot}
+#ny data distribution 2006 plot
+#view(brfss_df_tidyd_data_distribution_2006_plot)
+
+brfss_df_tidyd_data_distribution_2006_plot = 
+  
+  brfss_df_tidyd_data_distribution_2006_df %>% 
+  
+  mutate(response = fct_relevel(response,"Poor", "Fair", "Good", "Very good", "Excellent")) %>% 
+  
+  ggplot(aes(x = response, y = data_value, color = county)) +
+  
+  geom_point() +
+  
+  labs(
+    title = "BRFSS 2006 NY Counties Reponse Data Value by Category",
+    x = "NY Counties",
+    y = "County Data Value of Overall Health Responses", 
+    color = "NY State BRFSS County Locations",
+    caption = "BRFSS Data from https://www.cdc.gov/brfss/"
+  )
+  
+brfss_df_tidyd_data_distribution_2006_plot
+```
+
+#### c) 2010 Dataframe
+
+```{r ny data distribution 2010 dataframe}
+#ny data distribution 2010 dataframe
+#view(brfss_df_tidyd_data_distribution_2010_df)
+
+brfss_df_tidyd_data_distribution_2010_df = 
+  
+  brfss_df_tidyd %>% 
+  
+  rename(state = locationabbr) %>% 
+  
+  rename(county = locationdesc) %>% 
+  
+  select(year, state, county, response, data_value) %>% 
+  
+  filter(state == "NY") %>% 
+  
+  filter(year == 2010) %>% 
+  
+  mutate(county = recode(county, "NY - Kings County" = "Kings County", "NY - New York County" = "New York County", "NY - Suffolk County" = "Suffolk County", "NY - Nassau County" = "Nassau County", "NY - Queens County" = "Queens County", "NY - Westchester County" = "Weschester County", "NY - Bronx County" = "Brox County", "NY - Erie County" = "Erie County", "NY - Monroe County" = "Monroe County"))
+
+brfss_df_tidyd_data_distribution_2010_df
+```
+
+#### d) 2010 Plot
+
+```{r ny data distribution 2010 plot}
+#ny data distribution 2010 plot
+#view(brfss_df_tidyd_data_distribution_2010_plot)
+
+brfss_df_tidyd_data_distribution_2010_plot = 
+  
+  brfss_df_tidyd_data_distribution_2010_df %>% 
+  
+  mutate(response = fct_relevel(response,"Poor", "Fair", "Good", "Very good", "Excellent")) %>% 
+  
+  ggplot(aes(x = response, y = data_value, color = county)) +
+  
+  geom_point() +
+  
+  labs(
+    title = "BRFSS 2010 NY Counties Reponse Data Value by Category",
+    x = "NY Counties",
+    y = "County Data Value of Overall Health Responses", 
+    color = "NY State BRFSS County Locations",
+    caption = "BRFSS Data from https://www.cdc.gov/brfss/"
+  )
+  
+brfss_df_tidyd_data_distribution_2010_plot
+```
+
+#### e) Patchworking 2006 and 2010 together
+
+```{r}
+brfss_df_tidyd_data_distribution_2006_plot + brfss_df_tidyd_data_distribution_2010_plot
+```
+
+> Generally, as expected, the poor and fair values are both fairly low and farily clustered. However, as we move into good, very good, and excellent, an odd trend of both similar absolute values and high levels of variation between localities means that, for group data reporting purposes, categories fail to do their job.
+
+> The one insteresting note is that execllent does tend to be lower in value compared with good and very good. This could suggest culutral or individual bais within people, as people who select excellenet tend to outwardly portray (e.g., selecting the best cateogry) better than what they're think relatively doing (e.g., lower absoulte values). 
 
 # III. Problem 3
 
@@ -98,13 +597,128 @@ Accelerometers have become an appealing alternative to self-report techniques fo
 
 This problem uses accelerometer data collected on 250 participants in the NHANES study. The participants’ demographic data can be downloaded here, and their accelerometer data can be downloaded here. Variables *MIMS are the MIMS values for each minute of a 24-hour day starting at midnight.
 
+```{r accel data import}
+#view(nhanes_accel_df)
+
+nhanes_accel_df = read_csv("./20231014_p8105_hw3_jwc2177_data/nhanes_accel.csv")
+
+nhanes_accel_df
+```
+
+```{r covar data import}
+#view(nhanes_covar_df)
+
+nhanes_covar_df = read_csv("./20231014_p8105_hw3_jwc2177_data/nhanes_covar.csv")
+
+nhanes_covar_df
+```
+
+
 ## ii. Data Tidying
 
 Load, tidy, merge, and otherwise organize the data sets. Your final dataset should include all originally observed variables; exclude participants less than 21 years of age, and those with missing demographic data; and encode data with reasonable variable classes (i.e. not numeric, and using factors with the ordering of tables and plots in mind).
 
+```{r accel data tidy}
+#view(nhanes_covar_tidyd_df)
+nhanes_accel_tidyd_df = 
+  
+  nhanes_accel_df %>%  
+  
+  rename("sequence" = "SEQN") %>% 
+  
+  mutate(sequence = as.numeric(sequence))
+
+nhanes_accel_tidyd_df
+```
+
+```{r covar data tidy}
+#view(nhanes_covar_tidyd_df)
+
+nhanes_covar_tidyd_df = 
+  
+  nhanes_covar_df %>% 
+  
+  janitor::clean_names() %>% 
+  
+  slice(5:n()) %>% 
+  
+  rename("sequence" = "x1", "sex" = "x1_male", "age" = "x3", "bmi" = "x4", "education" = "x1_less_than_high_school") %>% 
+  
+  mutate(sex = recode(sex, "2" = "female", "1" = "male")) %>% 
+  
+  mutate(education = recode(education, "1" = "incomplete_highschool", "2" = "complete_highschool", "3" = "over_highschool")) %>% 
+  
+  mutate(age = as.numeric(age)) %>% 
+  
+  mutate(sequence = as.numeric(sequence)) %>% 
+  
+  filter(age >20) %>% 
+  
+  filter(!is.na(sex)) %>% 
+  
+  filter(!is.na(age)) %>% 
+  
+  filter(!is.na(bmi)) %>% 
+  
+  filter(!is.na(education))
+  
+nhanes_covar_tidyd_df
+```
+
+```{r}
+#view(accel_into_covar_df)
+
+accel_into_covar_df = left_join(nhanes_covar_tidyd_df, nhanes_accel_tidyd_df) 
+
+accel_into_covar_df
+```
+
+
 ## iii. Human-Friendly Table
 
 Produce a reader-friendly table for the number of men and women in each education category, and create a visualization of the age distributions for men and women in each education category. Comment on these items.
+
+```{r}
+#view(accel_into_covar_df)
+
+accel_into_covar_df_age_distro = 
+
+accel_into_covar_df %>% 
+  
+  group_by(sex, education) %>% 
+  
+  summarize(count = n())
+
+accel_into_covar_df_age_distro
+```
+
+```{r}
+#view(accel_into_covar_df)
+
+accel_into_covar_df_age_distro_plot = 
+
+accel_into_covar_df_age_distro %>% 
+  
+  mutate(education = fct_relevel(education,"incomplete_highschool", "complete_highschool", "over_highschool")) %>% 
+  
+  ggplot(aes(x = education, y = count, color = sex)) +
+  
+  geom_point() + 
+  
+  geom_line() +
+  
+  labs(
+    title = "Sex Ratios of Education Level",
+    x = "Education Level",
+    y = "Count (n)", 
+    color = "Sex",
+    caption = "I like cats :)"
+  )
+
+accel_into_covar_df_age_distro_plot
+```
+
+> Based on the table and the graph, we can see that the the lower the education level the lesser particiaption from both the sexes. However, while women have an overall but in-parity advantage in the incomplelte highschool and over highschool groupp, the disparity is quite stark in the highschool group. This could suggest that normative stations is that women who complete highschool generally more overlooked than men, whereas the inverse is true for the extremes.
 
 ## iv. Accelerometer by Minutes
 
